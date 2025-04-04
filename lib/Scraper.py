@@ -1,43 +1,58 @@
 # lib/Scraper.py
 from bs4 import BeautifulSoup
 import requests
-from Course import Course  # Correct import as per the lab
+from Course import Course
 
 class Scraper:
     def __init__(self):
+        """Initialize the Scraper with an empty list of courses."""
         self.courses = []
 
     def get_page(self):
-        # Fetch the HTML content and parse it with Beautiful Soup
-        doc = BeautifulSoup(
-            requests.get("http://learn-co-curriculum.github.io/site-for-scraping/courses").text,
-            'html.parser'
-        )
-        return doc
+        """Fetch and parse the HTML content of the course page.
+
+        Returns:
+            BeautifulSoup object if successful, None if the request fails.
+        """
+        try:
+            response = requests.get("http://learn-co-curriculum.github.io/site-for-scraping/courses")
+            response.raise_for_status()
+            doc = BeautifulSoup(response.text, 'html.parser')
+            return doc
+        except requests.RequestException as e:
+            print(f"Error fetching page: {e}")
+            return None
 
     def get_courses(self):
-        # Use the CSS selector '.post' to get all course elements
-        return self.get_page().select('.post')
+        """Get all course elements from the page using a CSS selector.
+
+        Returns:
+            List of BeautifulSoup elements representing courses.
+        """
+        doc = self.get_page()
+        if doc is None:
+            return []
+        return doc.select('.post')
 
     def make_courses(self):
-        # Iterate over the course elements and create Course objects
+        """Create Course objects from the scraped data.
+
+        Returns:
+            List of Course objects.
+        """
         for course in self.get_courses():
-            # Extract title, schedule, and description with safety checks
             title = course.select("h2")[0].text if course.select("h2") else ''
             schedule = course.select(".date")[0].text if course.select(".date") else ''
             description = course.select("p")[0].text if course.select("p") else ''
-
-            # Create a new Course object and append it to self.courses
             new_course = Course(title, schedule, description)
             self.courses.append(new_course)
         return self.courses
 
     def print_courses(self):
-        # Provided method to print all courses
+        """Print all courses using their string representation."""
         for course in self.make_courses():
             print(course)
 
-# For testing purposes, you can run the scraper
 if __name__ == "__main__":
     scraper = Scraper()
     scraper.print_courses()
